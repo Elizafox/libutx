@@ -29,6 +29,7 @@ static bool __open_utmp(void)
 		return false;
 	}
 
+	errno = 0; // Reset just in case
 	return true;
 }
 
@@ -43,6 +44,8 @@ void setutxent(void)
 				UTMP_FILE ": %m");
 		return;
 	}
+
+	errno = 0; // Reset just in case
 }
 
 struct utmpx *getutxent(void)
@@ -59,9 +62,13 @@ struct utmpx *getutxent(void)
 		return NULL;
 	}
 	else if(ret == 0)
+	{
 		// Simple EOF
+		errno = ESRCH;
 		return NULL;
+	}
 
+	errno = 0;  // Reset just in case
 	return &ut;
 }
 
@@ -76,6 +83,7 @@ struct utmpx *getutxline(const struct utmpx *uts)
 			return &ut;
 	}
 
+	errno = ESRCH;
 	return NULL;
 }
 
@@ -100,17 +108,24 @@ struct utmpx *getutxid(const struct utmpx *uts)
 			break;
 		default:
 			// Blah, bad type
-			return NULL;
+			goto end;
+			break;
 		}
 	}
 
+end:
+	errno = ESRCH;
 	return NULL;
 }
 
 struct utmpx *pututxline(const struct utmpx *uts)
 {
-	// Seek to proper position
+	// Seek to proper position and reset errno unconditionally
 	getutxid(uts);
+
+	// Check errno to ensure it's what we expect
+	if(errno != ESRCH && errno != 0)
+		return NULL;
 
 	if(write(utmpfd, uts, sizeof(struct utmpx)) < 1)
 	{
@@ -119,6 +134,7 @@ struct utmpx *pututxline(const struct utmpx *uts)
 		return NULL;
 	}
 
+	errno = 0; // Just in case
 	return (struct utmpx *)uts;
 }
 
@@ -127,5 +143,6 @@ void endutxent(void)
 	if(utmpfd != -42)
 		close(utmpfd);
 
+	errno = 0; // Just in case
 	utmpfd = -42;
 }
