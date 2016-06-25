@@ -11,6 +11,8 @@
 static struct utmpx ut;
 static int utmpfd = -42; // Random magic number, sourced straight from my behind
 
+// Designed for lazy loading, "only use it if you need it", etc.
+// (and also reopenability)
 static bool __open_utmp(void)
 {
 	if(geteuid() != 0)
