@@ -1,6 +1,8 @@
 # libutx
 
-A cheap and shitty utmpx implementation for deficient systems like musl.
+A cheap utmpx implementation for deficient systems like musl.
+
+Complies with POSIX.1-2001 and POSIX.1-2008.
 
 Compile with:
 
