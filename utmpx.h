@@ -6,6 +6,9 @@
  * risk". I believe people who own a system are entitled to know who is on it,
  * even if the information may not be accurate due to compromise.
  *
+ * Besides that, working utmpx is needed for XSI compliance. This is really
+ * made for Adélie Linux.
+ *
  * I'm lazy and don't really feel like making a "full-featured" implementation
  * that is really suitable for auditing purposes and whatnot (this also means
  * no remote IP addresses yet). Deal with it for now.
