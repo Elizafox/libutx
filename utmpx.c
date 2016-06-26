@@ -1,6 +1,7 @@
 #include "utmpx.h"
 #include <stdio.h>
 #include <stdbool.h>
+#include <fcntl.h>
 #include <errno.h>
 #include <syslog.h>
 #include <string.h>
