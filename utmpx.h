@@ -1,6 +1,10 @@
 #ifndef __UTMPX_H__
 #define __UTMPX_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* An ultra-lazy implementation of utmpx from POSIX.
  * The author of musl is kind of crazy and believes that utmp is a "security
  * risk". I believe people who own a system are entitled to know who is on it,
@@ -53,5 +57,9 @@ struct utmpx *getutxid(const struct utmpx *);
 struct utmpx *getutxline(const struct utmpx *);
 struct utmpx *pututxline(const struct utmpx *);
 void endutxent(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // __UTMPX_H__
