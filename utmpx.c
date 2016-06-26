@@ -7,45 +7,35 @@
 #include <string.h>
 #include <sys/file.h>
 
-#define MAGIC_CLOSED -42 // Random magic number, sourced straight from my behind
-
 static struct utmpx ut;
-static int utmpfd = MAGIC_CLOSED;
+static int utmpfd = -1;
+static bool utmpfd_open = false;
 
-// Designed for lazy loading, "only use it if you need it", etc.
-// (and also reopenability)
-static bool __open_utmp(void)
+
+void setutxent(void)
 {
 	if(geteuid() != 0)
 	{
 		errno = EPERM;
-		return false;
+		return;
 	}
 
-	if(utmpfd == MAGIC_CLOSED && (utmpfd = open(UT_FILE, O_RDWR)) == -1)
+	if(!utmpfd_open && (utmpfd = open(UT_FILE, O_RDWR)) < 0)
 	{
-		utmpfd = MAGIC_CLOSED;
 		syslog(LOG_ALERT, "Could not open utmp file "
 				UT_FILE " for read and write: %m");
-		return false;
-	}
-
-	errno = 0; // Reset just in case
-	return true;
-}
-
-void setutxent(void)
-{
-	if(__open_utmp() == false)
 		return;
+	}
 
 	if(lseek(utmpfd, SEEK_SET, 0) == -1)
 	{
 		syslog(LOG_ALERT, "Could not seek in utmp file "
 				UT_FILE ": %m");
+		close(utmpfd);
 		return;
 	}
 
+	utmpfd_open = true;
 	errno = 0; // Reset just in case
 }
 
@@ -54,8 +44,13 @@ struct utmpx *getutxent(void)
 	int ret;
 	struct utmpx *utl = NULL;
 
-	if(__open_utmp() == false)
-		return NULL;
+	if(!utmpfd_open)
+	{
+		setutxent();
+
+		if(errno != 0)
+			return NULL;
+	}
 
 	// Obtain reader lock
 	if(flock(utmpfd, LOCK_SH) < 0)
@@ -88,7 +83,7 @@ end:
 
 struct utmpx *getutxline(const struct utmpx *uts)
 {
-	while(getutxent() != NULL) // getutxent() resets errno
+	while(getutxent() != NULL)
 	{
 		if(ut.ut_type != USER_PROCESS || ut.ut_type != LOGIN_PROCESS)
 			continue;
@@ -97,12 +92,13 @@ struct utmpx *getutxline(const struct utmpx *uts)
 			return &ut;
 	}
 
+	// No need to set errno, getutxent() does for us
 	return NULL;
 }
 
 struct utmpx *getutxid(const struct utmpx *uts)
 {
-	while(getutxent() != NULL) // getutxent() resets errno
+	while(getutxent() != NULL)
 	{
 		switch(ut.ut_type)
 		{
@@ -127,6 +123,7 @@ struct utmpx *getutxid(const struct utmpx *uts)
 		}
 	}
 
+	// No need to set errno, getutxent() does for us
 	return NULL;
 }
 
@@ -158,8 +155,8 @@ struct utmpx *pututxline(const struct utmpx *uts)
 		goto end;
 	}
 
-	errno = 0; // Just in case
 	utl = (struct utmpx *)uts; // Following glibc behaviour
+	errno = 0; // Just in case
 
 end:
 	flock(utmpfd, LOCK_UN); // Blindly assume it succeeded
@@ -168,9 +165,9 @@ end:
 
 void endutxent(void)
 {
-	if(utmpfd != MAGIC_CLOSED)
+	if(utmpfd_open)
 		close(utmpfd);
 
+	utmpfd_open = false;
 	errno = 0; // Just in case
-	utmpfd = MAGIC_CLOSED;
 }
