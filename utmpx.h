@@ -20,6 +20,7 @@ extern "C" {
  * --Elizafox
  */
 
+#include <stdint.h>
 #include <unistd.h>
 #include <sys/time.h>
 
