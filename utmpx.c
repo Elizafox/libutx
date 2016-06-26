@@ -7,7 +7,7 @@
 #include <sys/file.h>
 
 #define UTMP_FILE "/var/run/utmp" // FIXME
-#define MAGIC_CLOSED MAGIC_CLOSED // Random magic number, sourced straight from my behind
+#define MAGIC_CLOSED -42 // Random magic number, sourced straight from my behind
 
 static struct utmpx ut;
 static int utmpfd = MAGIC_CLOSED;
