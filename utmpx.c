@@ -75,7 +75,7 @@ struct utmpx *getutxent(void)
 
 struct utmpx *getutxline(const struct utmpx *uts)
 {
-	while(getutxent() != NULL)
+	while(getutxent() != NULL) // getutxent() resets errno
 	{
 		if(ut.ut_type != USER_PROCESS || ut.ut_type != LOGIN_PROCESS)
 			continue;
@@ -84,13 +84,12 @@ struct utmpx *getutxline(const struct utmpx *uts)
 			return &ut;
 	}
 
-	errno = ESRCH;
 	return NULL;
 }
 
 struct utmpx *getutxid(const struct utmpx *uts)
 {
-	while(getutxent() != NULL)
+	while(getutxent() != NULL) // getutxent() resets errno
 	{
 		switch(ut.ut_type)
 		{
@@ -108,14 +107,13 @@ struct utmpx *getutxid(const struct utmpx *uts)
 				return &ut;
 			break;
 		default:
-			// Blah, bad type
-			goto end;
+			// XXX find glibc behaviour
+			errno = EINVAL;
+			return NULL;
 			break;
 		}
 	}
 
-end:
-	errno = ESRCH;
 	return NULL;
 }
 
