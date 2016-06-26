@@ -52,25 +52,38 @@ void setutxent(void)
 struct utmpx *getutxent(void)
 {
 	int ret;
+	struct utmpx *utl = NULL;
 
 	if(__open_utmp() == false)
 		return NULL;
+
+	// Obtain reader lock
+	if(flock(utmpfd, LOCK_SH) < 0)
+	{
+		syslog(LOG_ALERT, "Could not obtain shared lock on utmp file "
+				UTMP_FILE ": %m");
+		return NULL;
+	}
 
 	if((ret = read(utmpfd, &ut, sizeof(struct utmpx))) < 0)
 	{
 		syslog(LOG_ALERT, "Could not read from utmp file "
 				UTMP_FILE ": %m");
-		return NULL;
+		goto end;
 	}
 	else if(ret == 0)
 	{
 		// Simple EOF
 		errno = ESRCH;
-		return NULL;
+		goto end;
 	}
 
 	errno = 0;  // Reset just in case
-	return &ut;
+	utl = &ut;
+
+end:
+	flock(utmpfd, LOCK_UN); // Just blindly assume it worked
+	return utl;
 }
 
 struct utmpx *getutxline(const struct utmpx *uts)
@@ -107,7 +120,7 @@ struct utmpx *getutxid(const struct utmpx *uts)
 				return &ut;
 			break;
 		default:
-			// XXX find glibc behaviour
+			// TODO - find glibc behaviour
 			errno = EINVAL;
 			return NULL;
 			break;
@@ -119,6 +132,8 @@ struct utmpx *getutxid(const struct utmpx *uts)
 
 struct utmpx *pututxline(const struct utmpx *uts)
 {
+	struct utmpx *utl = NULL;
+
 	// Seek to proper position and reset errno unconditionally
 	getutxid(uts);
 
@@ -126,15 +141,29 @@ struct utmpx *pututxline(const struct utmpx *uts)
 	if(errno != ESRCH && errno != 0)
 		return NULL;
 
-	if(write(utmpfd, uts, sizeof(struct utmpx)) < 1)
+	/* Obtain lock on the file to avoid lossage.
+	 * Better safe than sorry...
+	 */
+	if(flock(utmpfd, LOCK_EX) < 0)
 	{
-		syslog(LOG_ALERT, "Could not read from utmp file "
+		syslog(LOG_ALERT, "Could not get exclusive lock on utmp file "
 				UTMP_FILE ": %m");
 		return NULL;
 	}
 
+	if(write(utmpfd, uts, sizeof(struct utmpx)) < 1)
+	{
+		syslog(LOG_ALERT, "Could not read from utmp file "
+				UTMP_FILE ": %m");
+		goto end;
+	}
+
 	errno = 0; // Just in case
-	return (struct utmpx *)uts; // Following glibc behaviour...
+	utl = (struct utmpx *)uts; // Following glibc behaviour
+
+end:
+	flock(utmpfd, LOCK_UN); // Blindly assume it succeeded
+	return utl;
 }
 
 void endutxent(void)
