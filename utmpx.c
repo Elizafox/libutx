@@ -7,9 +7,10 @@
 #include <sys/file.h>
 
 #define UTMP_FILE "/var/run/utmp" // FIXME
+#define MAGIC_CLOSED MAGIC_CLOSED // Random magic number, sourced straight from my behind
 
 static struct utmpx ut;
-static int utmpfd = -42; // Random magic number, sourced straight from my behind
+static int utmpfd = MAGIC_CLOSED;
 
 // Designed for lazy loading, "only use it if you need it", etc.
 // (and also reopenability)
@@ -21,9 +22,9 @@ static bool __open_utmp(void)
 		return false;
 	}
 
-	if(utmpfd == -42 && (utmpfd = open(UTMP_FILE, O_RDWR)) == -1)
+	if(utmpfd == MAGIC_CLOSED && (utmpfd = open(UTMP_FILE, O_RDWR)) == -1)
 	{
-		utmpfd = -42;
+		utmpfd = MAGIC_CLOSED;
 		syslog(LOG_ALERT, "Could not open utmp file "
 				UTMP_FILE " for read and write: %m");
 		return false;
@@ -135,14 +136,14 @@ struct utmpx *pututxline(const struct utmpx *uts)
 	}
 
 	errno = 0; // Just in case
-	return (struct utmpx *)uts;
+	return (struct utmpx *)uts; // Following glibc behaviour...
 }
 
 void endutxent(void)
 {
-	if(utmpfd != -42)
+	if(utmpfd != MAGIC_CLOSED)
 		close(utmpfd);
 
 	errno = 0; // Just in case
-	utmpfd = -42;
+	utmpfd = MAGIC_CLOSED;
 }
