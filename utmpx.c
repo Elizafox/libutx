@@ -14,6 +14,8 @@ static bool utmpfd_open = false;
 
 void setutxent(void)
 {
+	struct stat st;
+
 	if(geteuid() != 0)
 	{
 		errno = EPERM;
@@ -26,10 +28,19 @@ void setutxent(void)
 				UT_FILE " for read and write: %m");
 		return;
 	}
-
-	if(lseek(utmpfd, SEEK_SET, 0) == -1)
+	else if(utmpfd_open && lseek(utmpfd, SEEK_SET, 0) == -1)
 	{
 		syslog(LOG_ALERT, "Could not seek in utmp file "
+				UT_FILE ": %m");
+		close(utmpfd);
+		return;
+	}
+
+	// Ensure file isn't corrupt
+	if(fstat(utmpfd, &st) < 0 ||
+		(st.st_size > 0 && (st.st_size % sizeof(struct utmpx)) != 0))
+	{
+		syslog(LOG_ALERT, "Could not check utmp file "
 				UT_FILE ": %m");
 		close(utmpfd);
 		return;
