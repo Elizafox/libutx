@@ -37,6 +37,7 @@ extern "C" {
 // Not in POSIX but needed anyway... conforming to what glibc does.
 #define UT_LINESIZE	32
 #define UT_NAMESIZE	32
+#define UT_HOSTSIZE	256
 
 // Hardcoded for now, set this to whatever you want
 #define UT_FILE "/var/run/utmp"
@@ -49,7 +50,13 @@ struct utmpx
 	pid_t ut_pid;			// Process ID.
 	short ut_type;			// Type of entry.
 	struct timeval ut_tv;		// Time entry was made.
+
+	// *** non-standard fields ***
+	char ut_host[UT_HOSTSIZE];	// Host name
+	uint32_t ut_addr_v6[4];		// IPv6 address (v4 uses [0] only)
 };
+
+#define ut_addr ut_addr_v6[0]
 
 void setutxent(void);
 struct utmpx *getutxent(void);
