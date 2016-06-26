@@ -171,3 +171,33 @@ void endutxent(void)
 	utmpfd_open = false;
 	errno = 0; // Just in case
 }
+
+
+#if defined(__GNUC__) || defined(__clang__) || defined(weak_alias)
+
+// Create weak_alias like musl does
+#ifndef weak_alias
+
+#define weak_alias(old, new) \
+	extern __typeof(old) new __attribute__((weak, alias(#old)))
+
+#endif // weak_alias
+
+weak_alias(endutxent, endutent);
+weak_alias(setutxent, setutent);
+weak_alias(getutxent, getutent);
+weak_alias(getutxid, getutid);
+weak_alias(getutxline, getutline);
+weak_alias(pututxline, pututline);
+
+#else // defined(__GNUC__) || defined(__clang__)
+
+// Shitty fallback
+
+void setutent(void) { setutxent(); }
+struct utmp *getutent(void) { return getutxent(); }
+struct utmp *getutid(const struct utmp *uts) { return getutxid(uts); }
+struct utmp *pututline(const struct utmp *uts) { return pututxline(uts); }
+void endutent(void) { endutxent(); }
+
+#endif // defined(__GNUC__) || defined(__clang__) || defined(weak_alias)

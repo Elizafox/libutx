@@ -54,10 +54,12 @@ struct utmpx
 
 	// *** non-standard fields ***
 	char ut_host[UT_HOSTSIZE];	// Host name
-	uint32_t ut_addr_v6[4];		// IPv6 address (v4 uses [0] only)
+	union
+	{
+		uint32_t ut_addr;	// IPv4 address
+		uint32_t ut_addr_v6[4];		// IPv6 address (v4 uses [0] only)
+	};
 };
-
-#define ut_addr ut_addr_v6[0]
 
 void setutxent(void);
 struct utmpx *getutxent(void);
@@ -65,6 +67,15 @@ struct utmpx *getutxid(const struct utmpx *);
 struct utmpx *getutxline(const struct utmpx *);
 struct utmpx *pututxline(const struct utmpx *);
 void endutxent(void);
+
+// Compatibility functions
+#define utmp utmpx
+
+void setutent(void);
+struct utmp *getutent(void);
+struct utmp *getutid(const struct utmp *);
+struct utmp *pututline(const struct utmp *);
+void endutent(void);
 
 #ifdef __cplusplus
 }
