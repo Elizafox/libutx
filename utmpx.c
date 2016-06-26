@@ -6,6 +6,7 @@
 #include <syslog.h>
 #include <string.h>
 #include <sys/file.h>
+#include <sys/stat.h>
 
 static struct utmpx ut;
 static int utmpfd = -1;
@@ -52,8 +53,9 @@ void setutxent(void)
 
 struct utmpx *getutxent(void)
 {
-	int ret;
 	struct utmpx *utl = NULL;
+	struct flock fl;
+	ssize_t ret;
 
 	if(!utmpfd_open)
 	{
@@ -64,7 +66,12 @@ struct utmpx *getutxent(void)
 	}
 
 	// Obtain reader lock
-	if(flock(utmpfd, LOCK_SH) < 0)
+	fl.l_type = F_RDLCK;
+	fl.l_whence = SEEK_CUR;
+	fl.l_start = 0;
+	fl.l_len = sizeof(struct utmpx);
+	fl.l_pid = getpid();
+	if(fcntl(utmpfd, F_SETLKW, &fl) < 0)
 	{
 		syslog(LOG_ALERT, "Could not obtain shared lock on utmp file "
 				UT_FILE ": %m");
@@ -88,7 +95,8 @@ struct utmpx *getutxent(void)
 	utl = &ut;
 
 end:
-	flock(utmpfd, LOCK_UN); // Just blindly assume it worked
+	fl.l_type = F_UNLCK;
+	fcntl(utmpfd, F_SETLKW, &fl); // Just blindly assume it worked
 	return utl;
 }
 
@@ -141,6 +149,7 @@ struct utmpx *getutxid(const struct utmpx *uts)
 struct utmpx *pututxline(const struct utmpx *uts)
 {
 	struct utmpx *utl = NULL;
+	struct flock fl;
 
 	// Seek to proper position and reset errno unconditionally
 	getutxid(uts);
@@ -152,7 +161,12 @@ struct utmpx *pututxline(const struct utmpx *uts)
 	/* Obtain lock on the file to avoid lossage.
 	 * Better safe than sorry...
 	 */
-	if(flock(utmpfd, LOCK_EX) < 0)
+	fl.l_type = F_WRLCK;
+	fl.l_whence = SEEK_CUR;
+	fl.l_start = 0;
+	fl.l_len = sizeof(struct utmpx);
+	fl.l_pid = getpid();
+	if(fcntl(utmpfd, F_SETLKW, &fl) < 0)
 	{
 		syslog(LOG_ALERT, "Could not get exclusive lock on utmp file "
 				UT_FILE ": %m");
@@ -170,7 +184,8 @@ struct utmpx *pututxline(const struct utmpx *uts)
 	errno = 0; // Just in case
 
 end:
-	flock(utmpfd, LOCK_UN); // Blindly assume it succeeded
+	fl.l_type = F_UNLCK;
+	fcntl(utmpfd, F_SETLKW, &fl); // Blindly assume it succeeded
 	return utl;
 }
 
