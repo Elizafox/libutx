@@ -6,7 +6,6 @@
 #include <string.h>
 #include <sys/file.h>
 
-#define UTMP_FILE "/var/run/utmp" // FIXME
 #define MAGIC_CLOSED -42 // Random magic number, sourced straight from my behind
 
 static struct utmpx ut;
@@ -22,11 +21,11 @@ static bool __open_utmp(void)
 		return false;
 	}
 
-	if(utmpfd == MAGIC_CLOSED && (utmpfd = open(UTMP_FILE, O_RDWR)) == -1)
+	if(utmpfd == MAGIC_CLOSED && (utmpfd = open(UT_FILE, O_RDWR)) == -1)
 	{
 		utmpfd = MAGIC_CLOSED;
 		syslog(LOG_ALERT, "Could not open utmp file "
-				UTMP_FILE " for read and write: %m");
+				UT_FILE " for read and write: %m");
 		return false;
 	}
 
@@ -42,7 +41,7 @@ void setutxent(void)
 	if(lseek(utmpfd, SEEK_SET, 0) == -1)
 	{
 		syslog(LOG_ALERT, "Could not seek in utmp file "
-				UTMP_FILE ": %m");
+				UT_FILE ": %m");
 		return;
 	}
 
@@ -61,14 +60,14 @@ struct utmpx *getutxent(void)
 	if(flock(utmpfd, LOCK_SH) < 0)
 	{
 		syslog(LOG_ALERT, "Could not obtain shared lock on utmp file "
-				UTMP_FILE ": %m");
+				UT_FILE ": %m");
 		return NULL;
 	}
 
 	if((ret = read(utmpfd, &ut, sizeof(struct utmpx))) < 0)
 	{
 		syslog(LOG_ALERT, "Could not read from utmp file "
-				UTMP_FILE ": %m");
+				UT_FILE ": %m");
 		goto end;
 	}
 	else if(ret == 0)
@@ -147,14 +146,14 @@ struct utmpx *pututxline(const struct utmpx *uts)
 	if(flock(utmpfd, LOCK_EX) < 0)
 	{
 		syslog(LOG_ALERT, "Could not get exclusive lock on utmp file "
-				UTMP_FILE ": %m");
+				UT_FILE ": %m");
 		return NULL;
 	}
 
 	if(write(utmpfd, uts, sizeof(struct utmpx)) < 1)
 	{
 		syslog(LOG_ALERT, "Could not read from utmp file "
-				UTMP_FILE ": %m");
+				UT_FILE ": %m");
 		goto end;
 	}
 

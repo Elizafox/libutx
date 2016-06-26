@@ -34,6 +34,9 @@
 #define UT_LINESIZE	32
 #define UT_NAMESIZE	32
 
+// Hardcoded for now, set this to whatever you want
+#define UT_FILE "/var/run/utmp"
+
 struct utmpx
 {
 	char ut_user[UT_NAMESIZE];	// User login name.
@@ -44,11 +47,11 @@ struct utmpx
 	struct timeval ut_tv;		// Time entry was made.
 };
 
-void endutxent(void);
+void setutxent(void);
 struct utmpx *getutxent(void);
 struct utmpx *getutxid(const struct utmpx *);
 struct utmpx *getutxline(const struct utmpx *);
 struct utmpx *pututxline(const struct utmpx *);
-void setutxent(void);
+void endutxent(void);
 
 #endif // __UTMPX_H__
