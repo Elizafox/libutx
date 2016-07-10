@@ -13,10 +13,6 @@ extern "C" {
  * Besides that, working utmpx is needed for XSI compliance. This is really
  * made for Adélie Linux.
  *
- * I'm lazy and don't really feel like making a "full-featured" implementation
- * that is really suitable for auditing purposes and whatnot (this also means
- * no remote IP addresses yet). Deal with it for now.
- *
  * --Elizafox
  */
 
@@ -45,21 +41,39 @@ extern "C" {
 
 struct utmpx
 {
-	char ut_user[UT_NAMESIZE];	// User login name.
-	char ut_id[4];			// Terminal name suffix or inittab(5) ID
-	char ut_line[UT_LINESIZE];	// Device name.
-	pid_t ut_pid;			// Process ID.
 	short ut_type;			// Type of entry.
+	pid_t ut_pid;			// Process ID.
+	char ut_line[UT_LINESIZE];	// Device name.
+	char ut_id[4];			// Terminal name suffix or inittab(5) ID
+	char ut_user[UT_NAMESIZE];	// User login name.
+
+	// *** non-standard fields ***
+	// Solaris contains all non-standard fields.
+	// BSD has ut_host.
+	// IRIX and z/OS have ut_host, ut_exit, and ut_session.
+	char ut_host[UT_HOSTSIZE];	// Host name for remote logins.
+	struct {
+		short e_termination;
+		short e_exit;
+	} ut_exit;			// Exit status
+	int32_t ut_session;		// Session ID for X11.
+
+	// *** standard field! ***
 	struct timeval ut_tv;		// Time entry was made.
 
 	// *** non-standard fields ***
-	char ut_host[UT_HOSTSIZE];	// Host name
 	union
 	{
 		uint32_t ut_addr;	// IPv4 address
-		uint32_t ut_addr_v6[4];		// IPv6 address (v4 uses [0] only)
+		uint32_t ut_addr_v6[4];	// IPv6 address (v4 uses [0] only)
 	};
+
+	char __unused[20];		// Unused.
 };
+
+#define ut_name ut_user
+#define ut_xtime ut_tv.tv_sec
+#define ut_addr ut_addr_v6[0]
 
 void setutxent(void);
 struct utmpx *getutxent(void);
