@@ -1,8 +1,17 @@
 # libutx
 
-A cheap utmpx implementation for deficient systems like musl.
+A cheap utmpx implementation for systems like musl.
 
-Complies with POSIX.1-2001 and POSIX.1-2008.
+## Discussion
+
+The author of musl doesn't believe in having utmpx and thus stubbed it out. In
+Adelie Linux, we are aiming for XSI compliance, and working utmpx is required.
+
+## Standards conformance
+
+Complies with POSIX.1-2001, POSIX.1-2008, and XSI
+
+## Compilation
 
 Compile with:
 
