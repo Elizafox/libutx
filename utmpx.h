@@ -6,12 +6,13 @@ extern "C" {
 #endif
 
 /* An ultra-lazy implementation of utmpx from POSIX.
- * The author of musl is kind of crazy and believes that utmp is a "security
+ * The author of musl believes that utmp is a "security risk" and "privacy
  * risk". I believe people who own a system are entitled to know who is on it,
  * even if the information may not be accurate due to compromise.
  *
- * Besides that, working utmpx is needed for XSI compliance. This is really
- * made for Adélie Linux.
+ * Besides that, working utmpx is needed for XSI compliance.
+ *
+ * This is really made for Adélie Linux, but can be used for whatever.
  *
  * --Elizafox
  */
