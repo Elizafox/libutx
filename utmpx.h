@@ -39,6 +39,9 @@ extern "C" {
 // Hardcoded for now, set this to whatever you want
 #define UT_FILE "/var/run/utmp"
 
+// Required for POSIX
+#define UTMPX_FILE UT_FILE
+
 struct utmpx
 {
 	short ut_type;			// Type of entry.
